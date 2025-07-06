@@ -8,6 +8,7 @@ from database import SessionLocal
 from models import User
 
 # Tier definitions with rate limits and access restrictions
+# max50
 TIER_LIMITS = {
     "free": {
         "max_requests": 50,  # max 50 requests per day
