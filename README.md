@@ -33,6 +33,6 @@ This project is a FastAPI-based backend service to compute technical stock indic
 ##  Deployed API & Docs
 
 - **Live API Base URL**: ` https://stock-technical-indicator-api.onrender.com/`
-- **Interactive Swagger Docs**: `[https://your-api-url.onrender.com/docs](https://stock-technical-indicator-api.onrender.com/docs)`
+- **Interactive Swagger Docs**: `https://stock-technical-indicator-api.onrender.com/docs#/default/home__get`
 
 
