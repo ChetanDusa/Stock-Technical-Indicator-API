@@ -2,6 +2,24 @@
 
 This project is a FastAPI-based backend service to compute technical stock indicators like SMA, EMA, RSI, MACD, and Bollinger Bands based on historical OHLC data.
 
+##  Our project is live!
+
+- **Live API Base URL**: ` https://stock-technical-indicator-api.onrender.com/`
+- **Interactive Swagger Docs**: `https://stock-technical-indicator-api.onrender.com/docs#/default/home__get`
+
+
+## Try it Yourself
+
+Here are three sample API keys you can use to test:
+
+- **Free Tier:** `free-key-123`
+- **Pro Tier:** `pro-key-456`
+- **Premium Tier:** `premium-key-789`
+
+### Example
+
+To test the `/sma` endpoint for `INFY` stock between `2024-05-01` and `2024-06-30`:
+
 ##  Features
 
 - Tier-based API access (Free, Pro, Premium)  
