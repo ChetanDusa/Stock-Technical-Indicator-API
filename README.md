@@ -2,7 +2,7 @@
 
 This project is a FastAPI-based backend service to compute technical stock indicators like SMA, EMA, RSI, MACD, and Bollinger Bands based on historical OHLC data.
 
-##  Our project is live!
+##  Our project is live !
 
 - **Live API Base URL**: ` https://stock-technical-indicator-api.onrender.com/`
 - **Interactive Swagger Docs**: `https://stock-technical-indicator-api.onrender.com/docs#/default/home__get`
