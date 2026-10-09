@@ -1,80 +1,74 @@
+"""Polars indicator functions; input rows must be ordered chronologically."""
+
 import polars as pl
 
+
 def sma(df: pl.DataFrame, window: int) -> pl.DataFrame:
-    """
-    Simple Moving Average (SMA) over 'close' prices.
-    """
-    return df.with_columns(
-        pl.col("close").rolling_mean(window).alias(f"SMA_{window}")
-    )
+    return df.with_columns(pl.col("close").rolling_mean(window).alias(f"SMA_{window}"))
 
 
 def ema(df: pl.DataFrame, span: int) -> pl.DataFrame:
-    """
-    Exponential Moving Average (EMA) over 'close' prices.
-    """
-    return df.with_columns(
-        pl.col("close").ewm_mean(span=span).alias(f"EMA_{span}")
+    """Normalized exponential mean (adjust=True), initialized from available history."""
+    return df.with_columns(pl.col("close").ewm_mean(span=span, adjust=True).alias(f"EMA_{span}"))
+
+
+def rsi(df: pl.DataFrame, period: int = 14, *, group_by_symbol: bool = False) -> pl.DataFrame:
+    """Cutler RSI: simple rolling means of N price changes; a flat window returns 50."""
+
+    def grouped(expr: pl.Expr) -> pl.Expr:
+        return expr.over("symbol") if group_by_symbol else expr
+
+    df = df.with_columns(grouped(pl.col("close").diff()).alias("__rsi_delta"))
+    delta = pl.col("__rsi_delta")
+    df = df.with_columns(
+        pl.when(delta.is_null())
+        .then(None)
+        .otherwise(delta.clip(lower_bound=0))
+        .alias("__rsi_gain"),
+        pl.when(delta.is_null())
+        .then(None)
+        .otherwise((-delta).clip(lower_bound=0))
+        .alias("__rsi_loss"),
+    ).with_columns(
+        grouped(pl.col("__rsi_gain").rolling_mean(period)).alias("__rsi_avg_gain"),
+        grouped(pl.col("__rsi_loss").rolling_mean(period)).alias("__rsi_avg_loss"),
+    )
+    gain, loss = pl.col("__rsi_avg_gain"), pl.col("__rsi_avg_loss")
+    value = (
+        pl.when(gain.is_null() | loss.is_null())
+        .then(None)
+        .when((gain == 0) & (loss == 0))
+        .then(50.0)
+        .when(loss == 0)
+        .then(100.0)
+        .otherwise(100.0 - 100.0 / (1.0 + gain / loss))
+    )
+    return df.with_columns(value.alias(f"RSI_{period}")).drop(
+        "__rsi_delta", "__rsi_gain", "__rsi_loss", "__rsi_avg_gain", "__rsi_avg_loss"
     )
 
 
-def rsi(df: pl.DataFrame, period: int = 14) -> pl.DataFrame:
-    """
-    Relative Strength Index (RSI) using Polars expressions.
-    """
-    df = df.with_columns([
-        (pl.col("close").diff().alias("delta"))
-    ])
-
-    df = df.with_columns([
-        pl.when(pl.col("delta") > 0).then(pl.col("delta")).otherwise(0.0).alias("gain"),
-        pl.when(pl.col("delta") < 0).then(-pl.col("delta")).otherwise(0.0).alias("loss"),
-    ])
-
-    df = df.with_columns([
-        pl.col("gain").rolling_mean(period).alias("avg_gain"),
-        pl.col("loss").rolling_mean(period).alias("avg_loss"),
-    ])
-
-    df = df.with_columns([
-        (100 - (100 / (1 + (pl.col("avg_gain") / (pl.col("avg_loss") + 1e-9))))).alias(f"RSI_{period}")
-    ])
-
-    return df
-
-
-
 def macd(df: pl.DataFrame, fast: int = 12, slow: int = 26, signal: int = 9) -> pl.DataFrame:
-    """
-    MACD = EMA(fast) - EMA(slow), plus Signal line and Histogram.
-    """
+    """Difference of normalized exponential means, plus signal and histogram."""
     close = df["close"]
-    ema_fast = close.ewm_mean(span=fast)
-    ema_slow = close.ewm_mean(span=slow)
-    macd_line = ema_fast - ema_slow
-    signal_line = macd_line.ewm_mean(span=signal)
-    hist = macd_line - signal_line
-
-    return df.with_columns([
-        pl.Series("MACD", macd_line),
-        pl.Series("MACD_Signal", signal_line),
-        pl.Series("MACD_Hist", hist)
-    ])
+    line = close.ewm_mean(span=fast, adjust=True) - close.ewm_mean(span=slow, adjust=True)
+    signal_line = line.ewm_mean(span=signal, adjust=True)
+    return df.with_columns(
+        line.alias("MACD"),
+        signal_line.alias("MACD_Signal"),
+        (line - signal_line).alias("MACD_Hist"),
+    )
 
 
-def bollinger_bands(df: pl.DataFrame, period: int = 20, std_multiplier: float = 2.0) -> pl.DataFrame:
-    """
-    Bollinger Bands using SMA and std deviation.
-    """
+def bollinger_bands(
+    df: pl.DataFrame, period: int = 20, std_multiplier: float = 2.0
+) -> pl.DataFrame:
+    """Rolling mean plus/minus a multiple of sample standard deviation (ddof=1)."""
     close = df["close"]
-    sma_val = close.rolling_mean(period)
-    std_val = close.rolling_std(period)
-
-    upper_band = sma_val + std_multiplier * std_val
-    lower_band = sma_val - std_multiplier * std_val
-
-    return df.with_columns([
-        pl.Series(name=f"BB_Mid_{period}", values=sma_val),
-        pl.Series(name=f"BB_Upper_{period}", values=upper_band),
-        pl.Series(name=f"BB_Lower_{period}", values=lower_band)
-    ])
+    middle = close.rolling_mean(period)
+    std = close.rolling_std(period, ddof=1)
+    return df.with_columns(
+        middle.alias(f"BB_Mid_{period}"),
+        (middle + std_multiplier * std).alias(f"BB_Upper_{period}"),
+        (middle - std_multiplier * std).alias(f"BB_Lower_{period}"),
+    )

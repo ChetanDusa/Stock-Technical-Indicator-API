@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql://stockapi:ci-only-password@localhost:5432/stockapi_test
+      TEST_DATABASE_URL: postgresql://stockapi:ci-only-password@localhost:5432/stockapi_test
+      REDIS_URL: redis://localhost:6379/15
+      TEST_REDIS_URL: redis://localhost:6379/15
+      POLARS_MAX_THREADS: "2"
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: stockapi
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: stockapi_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stockapi -d stockapi_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Lint and formatting
+        run: |
+          python -m ruff check .
+          python -m ruff format --check .
+      - name: Test against PostgreSQL and Redis
+        run: python -m pytest -q
+      - name: Check schema drift
+        run: python -m alembic check
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build production image
+        run: docker build --tag stock-indicator-api:ci .

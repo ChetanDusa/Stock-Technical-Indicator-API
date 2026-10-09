@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: stock-indicator-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_MIGRATION_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: POLARS_MAX_THREADS
+        value: "2"
+      - key: SCREENING_MAX_CONCURRENCY
+        value: "1"
+      - key: REDIS_KEY_PREFIX
+        value: stockapi
