@@ -1,5 +1,7 @@
 # Stock Technical Indicator API
 
+[![CI](https://github.com/ChetanDusa/Stock-Technical-Indicator-API/actions/workflows/ci.yml/badge.svg)](https://github.com/ChetanDusa/Stock-Technical-Indicator-API/actions/workflows/ci.yml)
+
 A FastAPI service for historical stock indicators and multi-condition stock screening.
 It uses Polars for calculations, PostgreSQL for accounts, and Redis for response caching
 and daily quotas.
@@ -7,6 +9,17 @@ and daily quotas.
 The bundled Parquet snapshot contains **830,955 rows and 1,168 symbols**, from
 **1 July 2022 through 30 June 2025**. It is a fixed historical dataset.
 The API exposes its coverage at `/dataset` and supported tickers at `/symbols`.
+
+## Live API
+
+**[Interactive API documentation](https://stock-indicator-api.onrender.com/docs)** ·
+[Readiness](https://stock-indicator-api.onrender.com/ready) ·
+[Dataset coverage](https://stock-indicator-api.onrender.com/dataset)
+
+The hosted service uses Render, Neon PostgreSQL and Upstash Redis. In Swagger UI,
+select **Authorize** and enter a provisioned API key to use authenticated endpoints.
+Render's [free instances](https://render.com/docs/free) sleep after 15 minutes of
+inactivity; the first request can take about a minute to resume the service.
 
 ## Architecture
 
