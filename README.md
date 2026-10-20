@@ -1,4 +1,4 @@
-# Stock Technical Indicator API
+# Stock Technical Indicator API.
 
 [![CI](https://github.com/ChetanDusa/Stock-Technical-Indicator-API/actions/workflows/ci.yml/badge.svg)](https://github.com/ChetanDusa/Stock-Technical-Indicator-API/actions/workflows/ci.yml)
 
